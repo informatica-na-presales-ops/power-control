@@ -4,6 +4,7 @@
 # That is, five fields separated by colons.
 
 import boto3
+import botocore.exceptions
 import collections
 import datetime
 import email.message
@@ -273,11 +274,15 @@ def main():
     for region in session.get_available_regions('ec2'):
         log.info(f'Checking {region}')
         ec2 = boto3.resource('ec2', region_name=region)
-        for instance in ec2.instances.all():
-            reason = do_power_control(instance, current_day, current_time)
-            results_for_reason = results[reason]
-            results_for_reason.append(get_instance_dict(instance, region))
-            results[reason] = results_for_reason
+        try:
+            for instance in ec2.instances.all():
+                reason = do_power_control(instance, current_day, current_time)
+                results_for_reason = results[reason]
+                results_for_reason.append(get_instance_dict(instance, region))
+                results[reason] = results_for_reason
+        except botocore.exceptions.ClientError as e:
+            log.critical(e)
+            log.critical(f'Skipping {region}')
 
     instances_to_stop = results[PowerControlReason.DAY_MISMATCH] + results[PowerControlReason.TIME_MISMATCH]
     instances_to_notify = process_notification_times(instances_to_stop, utc_now)
