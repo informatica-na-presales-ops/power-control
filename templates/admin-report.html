@@ -1,0 +1,60 @@
+<h2>NA Presales Cloud Power Control Run Report</h2>
+
+{% if ctx.config.dry_run %}<h3>THIS WAS A DRY RUN. NO ACTION WAS TAKEN.</h3>{% endif %}
+
+<p>Day and time used during this run: {{ ctx.run_time }} ({{ ctx.config.tz }})</p>
+
+<p>Machines that are not running: {{ ctx.instances_not_running|length }}</p>
+
+<p>Machines that are running within schedule: {{ ctx.instances_allowed|length }}</p>
+
+{% if ctx.instances_no_owner_exist %}
+<p>Machines with no owner: {{ ctx.instances_no_owner|length }}</p>
+
+<ul>
+    {% for i in ctx.instances_no_owner %}
+    <li>{{ i.region }} / {{ i.id }} / {{ i.name }} / {{ i.owner }} / {{ i.running_schedule }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<p>Machines with protected owner: {{ ctx.instances_protected_owner|length }}</p>
+
+{% if ctx.instances_malformed_exist %}
+<p>Machines with malformed or missing RUNNINGSCHEDULE: {{ ctx.instances_malformed|length }}</p>
+
+<ul>
+    {% for i in ctx.instances_malformed %}
+    <li>{{ i.region }} / {{ i.id }} / {{ i.name }} / {{ i.owner }} / {{ i.running_schedule }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<p>Machines stopped: {{ ctx.instances_to_stop|length }}</p>
+
+<ul>
+    {% for i in ctx.instances_to_stop %}
+    <li>{{ i.region }} / {{ i.id }} / {{ i.name }} / {{ i.owner }} / {{ i.running_schedule }}</li>
+    {% endfor %}
+</ul>
+
+{% if ctx.notified_owners_exist %}
+<p>Notifications were sent to the following owners:</p>
+
+<ul>
+    {% for o in ctx.notified_owners %}
+    <li>{{ o }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if ctx.problem_owners_exist %}
+<p>Notifications failed for the following owners:</p>
+
+
+<ul>
+    {% for o in ctx.problem_owners %}
+    <li>{{ o }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
