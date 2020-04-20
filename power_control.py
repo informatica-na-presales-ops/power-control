@@ -101,7 +101,7 @@ def send_email(from_addr, to_addr, subject, body) -> bool:
         msg['Subject'] = subject
         msg['From'] = from_addr
         msg['To'] = to_addr
-        msg.set_content(body)
+        msg.set_content(body, subtype='html')
         with smtplib.SMTP_SSL(host=c.smtp_host) as s:
             s.login(user=c.smtp_username, password=c.smtp_password)
             try:
@@ -292,7 +292,7 @@ def main():
     problem_owners = []
     for owner, instances in instances_to_notify_grouped.items():
         # Notify owners that instances are going to be stopped
-        owner_template = jinja_env.get_template('owner-notification.jinja2')
+        owner_template = jinja_env.get_template('owner-notification.html')
         ctx = {
             'config': c,
             'instances': instances
@@ -304,11 +304,13 @@ def main():
         else:
             problem_owners.append(owner)
 
-    admin_template = jinja_env.get_template('admin-report.jinja2')
+    admin_template = jinja_env.get_template('admin-report.html')
     ctx = {
         'config': c,
         'instances_allowed': results[PowerControlReason.ALLOWED],
+        'instances_malformed_exist': len(results[PowerControlReason.MALFORMED]) > 0,
         'instances_malformed': results[PowerControlReason.MALFORMED],
+        'instances_no_owner_exist': len(results[PowerControlReason.NO_OWNER]) > 0,
         'instances_no_owner': results[PowerControlReason.NO_OWNER],
         'instances_not_running': results[PowerControlReason.NOT_RUNNING],
         'instances_protected_owner': results[PowerControlReason.PROTECTED_OWNER],

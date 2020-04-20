@@ -1,0 +1,36 @@
+<h2>NA Presales Cloud Power Control</h2>
+
+{% if ctx.config.dry_run %}<h3>THIS WAS A DRY RUN. NO ACTION WAS TAKEN.</h3>{% endif %}
+
+<p>
+    You are receiving this notification because one or more of your environments is going to be automatically stopped.
+    To help save on costs, we assign each cloud-hosted environment a Running Schedule and stop any environment if it is
+    found to be running outside its assigned Running Schedule.
+</p>
+
+<p>
+    <a href="https://infawiki.informatica.com/display/PRESAL/Running+Schedule">Learn more about Running Schedules.</a>
+</p>
+
+<p>The following machines will be automatically stopped:</p>
+
+Machine ID / Machine Name / Running Schedule
+
+<ul>
+{% for i in ctx.instances|sort(attribute='name') %}
+    <li>Machine ID: {{ i.id }}<br>
+        Machine name: {{ i.name }}<br>
+        Running Schedule: {{ i.running_schedule }}
+    </li>
+{% endfor %}
+</ul>
+
+<p>
+    If you need to make adjustments to the Running Schedule for any of your environments, you may do so using
+    <a href="https://ops.infaaws.com/">Ops Web</a>. You may also send email to {{ ctx.config.admin_email }} with
+    questions.
+</p>
+
+<p>Thanks,</p>
+
+<p>NA Presales Operations</p>
