@@ -14,11 +14,10 @@
 
 <p>The following machines will be automatically stopped:</p>
 
-Machine ID / Machine Name / Running Schedule
-
 <ul>
 {% for i in ctx.instances|sort(attribute='name') %}
-    <li>Machine ID: {{ i.id }}<br>
+    <li>Region: {{ i.region }}<br>
+        Machine ID: {{ i.id }}<br>
         Machine name: {{ i.name }}<br>
         Running Schedule: {{ i.running_schedule }}
     </li>
@@ -31,6 +30,7 @@ Machine ID / Machine Name / Running Schedule
     questions.
 </p>
 
-<p>Thanks,</p>
-
-<p>NA Presales Operations</p>
+<p>
+    Thanks,<br>
+    NA Presales Operations
+</p>
