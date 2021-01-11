@@ -1,5 +1,5 @@
 --extra-index-url https://alpine-wheels.github.io/index
 
 Jinja2==2.11.2
-boto3==1.16.47
+boto3==1.16.51
 pytz==2020.5
