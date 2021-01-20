@@ -1,6 +1,5 @@
-version: '3'
+version: '3.8'
 
 services:
   power-control:
-    image: docker.pkg.github.com/informatica-na-presales-ops/power-control/power-control
-    build: .
+    image: ghcr.io/informatica-na-presales-ops/power-control
