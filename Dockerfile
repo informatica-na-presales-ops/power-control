@@ -7,7 +7,7 @@ RUN /usr/local/bin/pip install --no-cache-dir --requirement /power-control/requi
 COPY . /power-control
 
 ENV ADMIN_EMAIL="" \
-    APP_VERSION="2020.1" \
+    APP_VERSION="2021.1" \
     AWS_ACCESS_KEY_ID="" \
     AWS_DEFAULT_REGION="us-west-2" \
     AWS_SECRET_ACCESS_KEY="" \
