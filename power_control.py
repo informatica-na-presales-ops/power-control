@@ -3,6 +3,7 @@
 # A valid RUNNINGSCHEDULE tag value should be in the form: dd:dd:dd:dd:d-d
 # That is, five fields separated by colons.
 
+import apscheduler.schedulers.blocking
 import boto3
 import botocore.exceptions
 import collections
@@ -15,6 +16,7 @@ import logging
 import os
 import pathlib
 import pytz
+import signal
 import smtplib
 import sys
 
@@ -252,15 +254,7 @@ def group_by_owner(instances: List[Dict]) -> Dict[str, List[Dict]]:
     return result
 
 
-def main():
-    logging.basicConfig(format=c.log_format, level=logging.DEBUG, stream=sys.stdout)
-    log.debug(f'power-control {c.version}')
-    if not c.log_level == 'DEBUG':
-        log.debug(f'Setting log level to {c.log_level}')
-    logging.getLogger().setLevel(c.log_level)
-
-    log.info(f'PROTECTED_OWNERS: {c.protected_owners}')
-    log.info(f'TZ: {c.tz}')
+def main_job():
     zone = pytz.timezone(c.tz)
     utc_now = pytz.utc.localize(datetime.datetime.utcnow())
     now = utc_now.astimezone(zone)
@@ -331,5 +325,25 @@ def main():
             ec2.instances.filter(InstanceIds=[i['id'] for i in instances]).stop()
 
 
+def main():
+    logging.basicConfig(format=c.log_format, level=logging.DEBUG, stream=sys.stdout)
+    log.debug(f'power-control {c.version}')
+    if not c.log_level == 'DEBUG':
+        log.debug(f'Setting log level to {c.log_level}')
+    logging.getLogger().setLevel(c.log_level)
+
+    log.info(f'PROTECTED_OWNERS: {c.protected_owners}')
+    log.info(f'TZ: {c.tz}')
+
+    scheduler = apscheduler.schedulers.blocking.BlockingScheduler()
+    scheduler.add_job(main_job, 'cron', minute=1)
+    scheduler.start()
+
+
+def handle_sigterm(_signal, _frame):
+    sys.exit()
+
+
 if __name__ == '__main__':
+    signal.signal(signal.SIGTERM, handle_sigterm)
     main()
