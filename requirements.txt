@@ -1,6 +1,6 @@
 --extra-index-url https://alpine-wheels.github.io/index
 
 APScheduler==3.7.0
-Jinja2==2.11.2
+Jinja2==2.11.3
 boto3==1.16.63
 pytz==2020.5
