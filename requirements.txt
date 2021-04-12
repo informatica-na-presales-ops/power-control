@@ -2,5 +2,5 @@
 
 APScheduler==3.7.0
 Jinja2==2.11.3
-boto3==1.17.44
+boto3==1.17.49
 pytz==2021.1
