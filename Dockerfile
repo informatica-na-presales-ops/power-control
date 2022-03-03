@@ -9,7 +9,7 @@ COPY --chown=python:python requirements.txt /home/python/power-control/requireme
 RUN /home/python/venv/bin/pip install --no-cache-dir --requirement /home/python/power-control/requirements.txt
 
 ENV ADMIN_EMAIL="" \
-    APP_VERSION="2022.1" \
+    APP_VERSION="2022.2" \
     AWS_ACCESS_KEY_ID="" \
     AWS_DEFAULT_REGION="us-west-2" \
     AWS_SECRET_ACCESS_KEY="" \
