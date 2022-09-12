@@ -1,6 +1,9 @@
-version: '3.8'
-
 services:
-  power-control:
+  shell:
+    entrypoint:
+      - /bin/sh
     image: ghcr.io/informatica-na-presales-ops/power-control
     init: true
+    volumes:
+      - ./:/home/python/power-control
+    working_dir: /home/python/power-control
