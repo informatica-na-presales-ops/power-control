@@ -20,8 +20,6 @@ import signal
 import smtplib
 import sys
 
-from typing import Dict, List
-
 log = logging.getLogger(__name__)
 if __name__ == '__main__':
     log = logging.getLogger('power_control')
@@ -44,7 +42,7 @@ class Config:
     log_format: str
     log_level: str
     notification_wait_hours: int
-    protected_owners: List[str]
+    protected_owners: list[str]
     send_email: bool
     smtp_from: str
     smtp_host: str
@@ -75,7 +73,7 @@ class Config:
         self.version = os.getenv('APP_VERSION', 'unknown')
 
     @property
-    def notification_times(self) -> Dict[str, datetime.datetime]:
+    def notification_times(self) -> dict[str, datetime.datetime]:
         raw_data = {}
         path = pathlib.Path(self.tracking_file)
         if path.exists():
@@ -84,7 +82,7 @@ class Config:
         return {key: datetime.datetime.fromisoformat(value).astimezone(pytz.utc) for key, value in raw_data.items()}
 
     @notification_times.setter
-    def notification_times(self, data: Dict[str, datetime.datetime]):
+    def notification_times(self, data: dict[str, datetime.datetime]):
         path = pathlib.Path(self.tracking_file)
         with path.open('w') as f:
             json.dump({key: value.isoformat() for key, value in data.items()}, f, indent=1, sort_keys=True)
@@ -208,7 +206,7 @@ def do_power_control(instance, current_day, current_time) -> PowerControlReason:
     return PowerControlReason.ALLOWED
 
 
-def process_notification_times(instances: List[Dict], utc_now: datetime.datetime) -> List[Dict]:
+def process_notification_times(instances: list[dict], utc_now: datetime.datetime) -> list[dict]:
     """Compare a list of instances to the record of when we last sent a notification for each instance. If an instance
     has been notified about less than 12 hours ago, remove it from the list because we don't want to send another
     notification yet."""
@@ -236,7 +234,7 @@ def process_notification_times(instances: List[Dict], utc_now: datetime.datetime
     return new_list
 
 
-def group_by_region(instances: List[Dict]) -> Dict[str, List[Dict]]:
+def group_by_region(instances: list[dict]) -> dict[str, list[dict]]:
     result = collections.defaultdict(list)
     for instance in instances:
         region_instances = result[instance['region']]
@@ -245,7 +243,7 @@ def group_by_region(instances: List[Dict]) -> Dict[str, List[Dict]]:
     return result
 
 
-def group_by_owner(instances: List[Dict]) -> Dict[str, List[Dict]]:
+def group_by_owner(instances: list[dict]) -> dict[str, list[dict]]:
     result = collections.defaultdict(list)
     for instance in instances:
         owner_instances = result[instance['owner']]
