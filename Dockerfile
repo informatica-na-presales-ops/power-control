@@ -20,6 +20,7 @@ ENV ADMIN_EMAIL="" \
     NOTIFICATION_WAIT_HOURS="12" \
     PATH="/home/python/venv/bin:${PATH}" \
     PROTECTED_OWNERS="" \
+    PYTHONDONTWRITEBYTECODE="1" \
     PYTHONUNBUFFERED="1" \
     SEND_EMAIL="false" \
     SMTP_FROM="" \
