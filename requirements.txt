@@ -38,7 +38,7 @@ six==1.16.0
     #   python-dateutil
 tzdata==2023.3
     # via pytz-deprecation-shim
-tzlocal==4.2
+tzlocal==4.3
     # via apscheduler
 urllib3==1.26.14
     # via botocore
