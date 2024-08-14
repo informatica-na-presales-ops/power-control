@@ -34,8 +34,7 @@ ENV ADMIN_EMAIL="" \
 ENTRYPOINT ["/home/python/venv/bin/python"]
 CMD ["/home/python/power-control/power_control.py"]
 
-LABEL org.opencontainers.image.authors="William Jackson <wjackson@informatica.com>" \
-      org.opencontainers.image.source="https://bitb.informatica.com/projects/TS/repos/power-control" \
+LABEL org.opencontainers.image.source="https://github.com/informatica-na-presales-ops/power-control" \
       org.opencontainers.image.version="${APP_VERSION}"
 
 COPY --chown=python:python power_control.py /home/python/power-control/power_control.py
