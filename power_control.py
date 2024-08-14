@@ -315,7 +315,7 @@ def main_job():
     }
     admin_report = admin_template.render(ctx=ctx)
     if len(instances_to_notify) > 0:
-        send_email(c.smtp_from, c.admin_email, 'NA PreSales Power Control Run Report', admin_report)
+        send_email(c.smtp_from, c.admin_email, 'Technical Sales Power Control Run Report', admin_report)
 
     if not c.dry_run:
         for region, instances in group_by_region(instances_to_stop).items():
