@@ -8,12 +8,8 @@ RUN /usr/local/bin/python -m venv /home/python/venv
 COPY --chown=python:python requirements.txt /home/python/power-control/requirements.txt
 RUN /home/python/venv/bin/pip install --no-cache-dir --requirement /home/python/power-control/requirements.txt
 
-ENV ADMIN_EMAIL="" \
-    APP_VERSION="2023.2" \
-    AWS_ACCESS_KEY_ID="" \
+ENV APP_VERSION="2023.2" \
     AWS_DEFAULT_REGION="us-west-2" \
-    AWS_SECRET_ACCESS_KEY="" \
-    AWS_SES_CONFIGURATION_SET="" \
     DRY_RUN="true" \
     LOG_FORMAT="%(levelname)s [%(name)s] %(message)s" \
     LOG_LEVEL="INFO" \
@@ -23,10 +19,6 @@ ENV ADMIN_EMAIL="" \
     PYTHONDONTWRITEBYTECODE="1" \
     PYTHONUNBUFFERED="1" \
     SEND_EMAIL="false" \
-    SMTP_FROM="" \
-    SMTP_HOST="" \
-    SMTP_PASSWORD="" \
-    SMTP_USERNAME="" \
     TEMPLATE_PATH="/home/python/power-control/templates" \
     TRACKING_FILE="/data/power-control.json" \
     TZ="Etc/UTC"
