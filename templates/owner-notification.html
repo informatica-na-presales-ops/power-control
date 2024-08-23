@@ -19,7 +19,7 @@
     <li>Region: {{ i.region }}<br>
         Machine ID: {{ i.id }}<br>
         Machine name: {{ i.name }}<br>
-        Running Schedule: {{ i.running_schedule }}
+        Running Schedule: {{ i.running_schedule }} ({{ i.running_schedule_tz }})
     </li>
 {% endfor %}
 </ul>

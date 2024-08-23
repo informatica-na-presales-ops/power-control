@@ -2,7 +2,7 @@
 
 {% if ctx.config.dry_run %}<h3>THIS WAS A DRY RUN. NO ACTION WAS TAKEN.</h3>{% endif %}
 
-<p>Day and time used during this run: {{ ctx.run_time }} ({{ ctx.config.tz }})</p>
+<p>Day and time used during this run: {{ ctx.run_time }} UTC (default time zone is {{ ctx.config.tz }})</p>
 
 <p>Machines that are not running: {{ ctx.instances_not_running|length }}</p>
 
@@ -30,11 +30,20 @@
 </ul>
 {% endif %}
 
+{% if ctx.instances_invalid_zone %}
+<p>Machines with invalid RUNNINGSCHEDULE_TZ: {{ ctx.instances_invalid_zone|length }}</p>
+<ul>
+    {% for i in ctx.instances_invalid_zone %}
+    <li>{{ i.region }} / {{ i.id }} / {{ i.name }} / {{ i.owner }} / {{ i.running_schedule_tz }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
 <p>Machines stopped: {{ ctx.instances_to_stop|length }}</p>
 
 <ul>
     {% for i in ctx.instances_to_stop %}
-    <li>{{ i.region }} / {{ i.id }} / {{ i.name }} / {{ i.owner }} / {{ i.running_schedule }}</li>
+    <li>{{ i.region }} / {{ i.id }} / {{ i.name }} / {{ i.owner }} / {{ i.running_schedule }} ({{ i.running_schedule_tz }})</li>
     {% endfor %}
 </ul>
 
@@ -50,7 +59,6 @@
 
 {% if ctx.problem_owners_exist %}
 <p>Notifications failed for the following owners:</p>
-
 
 <ul>
     {% for o in ctx.problem_owners %}

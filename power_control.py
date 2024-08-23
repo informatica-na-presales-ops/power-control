@@ -19,6 +19,7 @@ import pytz
 import signal
 import smtplib
 import sys
+import zoneinfo
 
 log = logging.getLogger(__name__)
 if __name__ == '__main__':
@@ -33,12 +34,14 @@ class PowerControlReason(enum.Enum):
     ALLOWED = enum.auto()
     NO_OWNER = enum.auto()
     PROTECTED_OWNER = enum.auto()
+    INVALID_ZONE = enum.auto()
 
 
 class Config:
     admin_email: str
     aws_ses_configuration_set: str
     dry_run: bool
+    immediate: bool
     log_format: str
     log_level: str
     notification_wait_hours: int
@@ -58,6 +61,7 @@ class Config:
         self.admin_email = os.getenv('ADMIN_EMAIL')
         self.aws_ses_configuration_set = os.getenv('AWS_SES_CONFIGURATION_SET')
         self.dry_run = os.getenv('DRY_RUN', 'true').lower() in true_values
+        self.immediate = os.getenv('IMMEDIATE', 'true').lower() in true_values
         self.log_format = os.getenv('LOG_FORMAT', '%(levelname)s [%(name)s] %(message)s')
         self.log_level = os.getenv('LOG_LEVEL', 'INFO')
         self.notification_wait_hours = int(os.getenv('NOTIFICATION_WAIT_HOURS', 12))
@@ -116,25 +120,42 @@ def send_email(from_addr, to_addr, subject, body) -> bool:
 
 def parse_schedule(schedule: str):
     tokens = schedule.split(':')
+
+    # the schedule must have only 5 fields
     if not len(tokens) == 5:
         return False
+
+    # the first 4 fields must be 2 valid 24h times
     try:
         start_time = datetime.time.fromisoformat(f'{tokens[0]}:{tokens[1]}')
         stop_time = datetime.time.fromisoformat(f'{tokens[2]}:{tokens[3]}')
     except ValueError:
         return False
+
+    # the start time must be before the stop time
+    if start_time >= stop_time:
+        return False
+
+    # the last field must have 1 hyphen
     day_tokens = tokens[4].split('-')
     if not len(day_tokens) == 2:
         return False
+
+    # the first day and last day must be integers
     try:
         first_day = int(day_tokens[0])
         last_day = int(day_tokens[1])
     except ValueError:
         return False
+
+    # the first day must be less than or equal to the last day
     if last_day < first_day:
         return False
+
+    # the first day and last day must be between 1 and 7
     if first_day < 1 or first_day > 7 or last_day < 1 or last_day > 7:
         return False
+
     return start_time, stop_time, first_day, last_day
 
 
@@ -155,6 +176,10 @@ def get_running_schedule(instance):
     return get_tag(instance, 'RUNNINGSCHEDULE') or '(no schedule)'
 
 
+def get_running_schedule_tz(instance) -> str:
+    return get_tag(instance, 'RUNNINGSCHEDULE_TZ') or c.tz
+
+
 def instance_is_running(instance):
     return instance.state['Name'] == 'running'
 
@@ -169,40 +194,57 @@ def get_instance_dict(instance, region):
         'name': get_instance_name(instance),
         'owner': get_instance_owner(instance),
         'region': region,
-        'running_schedule': get_running_schedule(instance)
+        'running_schedule': get_running_schedule(instance),
+        'running_schedule_tz': get_running_schedule_tz(instance),
     }
 
 
-def do_power_control(instance, current_day, current_time) -> PowerControlReason:
+def do_power_control(instance) -> PowerControlReason:
     if not instance_is_running(instance):
-        log.info(f'{instance.id}: skipping because this instance is not running')
+        log.info(f'{instance.id}: skip: not running')
         return PowerControlReason.NOT_RUNNING
 
     owner = get_instance_owner(instance)
     if owner == '(no owner)':
-        log.info(f'{instance.id}: skipping because this instance has no owner')
+        log.info(f'{instance.id}: skip: no owner to notify')
         return PowerControlReason.NO_OWNER
 
     if owner in c.protected_owners:
-        log.info(f'{instance.id}: skipping because instance owner is protected')
+        log.info(f'{instance.id}: skip: owner is protected: {owner}')
         return PowerControlReason.PROTECTED_OWNER
 
-    schedule = parse_schedule(get_running_schedule(instance))
+    running_schedule = get_running_schedule(instance)
+    schedule = parse_schedule(running_schedule)
+
     if not schedule:
-        log.info(f'{instance.id}: skipping because RUNNINGSCHEDULE is not in the correct form')
+        log.info(f'{instance.id}: skip: malformed RUNNINGSCHEDULE: {running_schedule!r}')
         return PowerControlReason.MALFORMED
 
     start_time, stop_time, first_day, last_day = schedule
 
+    now = datetime.datetime.now(datetime.UTC)
+    schedule_tz = get_running_schedule_tz(instance)
+    try:
+        z = zoneinfo.ZoneInfo(schedule_tz)
+    except zoneinfo.ZoneInfoNotFoundError:
+        log.warning(f'{instance.id}: skip: invalid RUNNINGSCHEDULE_TZ: {schedule_tz!r}')
+        return PowerControlReason.INVALID_ZONE
+
+    now_in_zone = now.astimezone(z)
+    current_day = now_in_zone.isoweekday()
+    current_time = now_in_zone.time()
+    full_sched = f'{running_schedule} {schedule_tz}'
+
     if current_day < first_day or current_day > last_day:
-        log.warning(f'{instance.id}: stopping because today is outside RUNNINGSCHEDULE')
+        log.warning(f'{instance.id}: stop: current day ({current_day}) is outside RUNNINGSCHEDULE: {full_sched}')
         return PowerControlReason.DAY_MISMATCH
 
     if current_time < start_time or current_time > stop_time:
-        log.warning(f'{instance.id}: stopping because current time is outside RUNNINGSCHEDULE')
+        ct = current_time.isoformat('minutes')
+        log.warning(f'{instance.id}: stop: current time ({ct}) is outside RUNNINGSCHEDULE: {full_sched}')
         return PowerControlReason.TIME_MISMATCH
 
-    log.info(f'{instance.id}: skipping because this instance is allowed at this time')
+    log.info(f'{instance.id}: skip: allowed at this day/time: {full_sched}')
     return PowerControlReason.ALLOWED
 
 
@@ -253,13 +295,9 @@ def group_by_owner(instances: list[dict]) -> dict[str, list[dict]]:
 
 
 def main_job():
-    zone = pytz.timezone(c.tz)
-    utc_now = pytz.utc.localize(datetime.datetime.utcnow())
-    now = utc_now.astimezone(zone)
+    now = datetime.datetime.now(datetime.UTC)
     current_day = now.isoweekday()
     current_time = now.time()
-    log.info(f'Current day is {now:%A} ({current_day})')
-    log.info(f'Current time is {current_time:%H:%M}')
 
     session = boto3.session.Session()
     results = collections.defaultdict(list)
@@ -268,7 +306,7 @@ def main_job():
         ec2 = boto3.resource('ec2', region_name=region)
         try:
             for instance in ec2.instances.all():
-                reason = do_power_control(instance, current_day, current_time)
+                reason = do_power_control(instance)
                 results_for_reason = results[reason]
                 results_for_reason.append(get_instance_dict(instance, region))
                 results[reason] = results_for_reason
@@ -277,7 +315,7 @@ def main_job():
             log.critical(f'Skipping {region}')
 
     instances_to_stop = results[PowerControlReason.DAY_MISMATCH] + results[PowerControlReason.TIME_MISMATCH]
-    instances_to_notify = process_notification_times(instances_to_stop, utc_now)
+    instances_to_notify = process_notification_times(instances_to_stop, now)
     instances_to_notify_grouped = group_by_owner(instances_to_notify)
 
     notified_owners = []
@@ -302,6 +340,7 @@ def main_job():
         'instances_allowed': results[PowerControlReason.ALLOWED],
         'instances_malformed_exist': len(results[PowerControlReason.MALFORMED]) > 0,
         'instances_malformed': results[PowerControlReason.MALFORMED],
+        'instances_invalid_zone': results[PowerControlReason.INVALID_ZONE],
         'instances_no_owner_exist': len(results[PowerControlReason.NO_OWNER]) > 0,
         'instances_no_owner': results[PowerControlReason.NO_OWNER],
         'instances_not_running': results[PowerControlReason.NOT_RUNNING],
@@ -333,9 +372,12 @@ def main():
     log.info(f'PROTECTED_OWNERS: {c.protected_owners}')
     log.info(f'TZ: {c.tz}')
 
-    scheduler = apscheduler.schedulers.blocking.BlockingScheduler()
-    scheduler.add_job(main_job, 'cron', minute=1)
-    scheduler.start()
+    if c.immediate:
+        main_job()
+    else:
+        scheduler = apscheduler.schedulers.blocking.BlockingScheduler()
+        scheduler.add_job(main_job, 'cron', minute=1)
+        scheduler.start()
 
 
 def handle_sigterm(_signal, _frame):
