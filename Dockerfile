@@ -8,7 +8,7 @@ RUN /usr/local/bin/python -m venv /home/python/venv
 COPY --chown=python:python requirements.txt /home/python/power-control/requirements.txt
 RUN /home/python/venv/bin/pip install --no-cache-dir --requirement /home/python/power-control/requirements.txt
 
-ENV APP_VERSION="2024.1" \
+ENV APP_VERSION="2024.2" \
     AWS_DEFAULT_REGION="us-west-2" \
     DRY_RUN="true" \
     LOG_FORMAT="%(levelname)s [%(name)s] %(message)s" \
